@@ -1,11 +1,7 @@
 import typer
 from rich.console import Console
 
-app = typer.Typer(
-    name="lifeos",
-    help="Local Agentic LifeOS CLI",
-    add_completion=False
-)
+app = typer.Typer(name="lifeos", help="Local Agentic LifeOS CLI", add_completion=False)
 console = Console()
 
 
@@ -15,6 +11,7 @@ def overview():
     console.print(
         "[bold green]LifeOS Active[/bold green] - Daily overview coming soon!"
     )
+
 
 @app.command()
 def version():
