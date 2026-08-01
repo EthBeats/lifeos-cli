@@ -6,12 +6,60 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from lifeos.config import settings
+
 app = typer.Typer(
     name="lifeos",
     help="🤖 Local Agentic LifeOS CLI",
     add_completion=False,
 )
 console = Console()
+
+@app.command()
+def check_canvas(
+    days: int = typer.Option(14, "--days", "-d", help="Lookahead window in days"),
+    url: Optional[str] = typer.Option(
+        None, "--url", "-u", help="Canvas iCal URL override"
+    ),
+):
+    """Fetch and render upcoming Canvas LMS assignments."""
+    from lifeos.integrations.canvas import CanvasICalParser
+
+    target_url = url or settings.canvas_ical_url
+    if not target_url:
+        console.print(
+            "[bold red]Error:[/bold red] No Canvas iCal URL found.\n"
+            "Please add `CANVAS_ICAL_URL=...` to your `.env` file or pass `--url`."
+        )
+        raise typer.Exit(code=1)
+
+    console.print(f"[yellow]Fetching Canvas feed (next {days} days)...[/yellow]")
+    parser = CanvasICalParser(ical_url=target_url)
+
+    try:
+        assignments = parser.get_upcoming_assignments(days_ahead=days)
+    except Exception as e:
+        console.print(f"[bold red]Failed to fetch or parse Canvas feed:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    if not assignments:
+        console.print("[green]No upcoming assignments found in this window! 🎉[/green]")
+        return
+
+    table = Table(
+        title=f"Canvas Assignments (Next {days} Days)",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Course", style="magenta")
+    table.add_column("Assignment", style="bold white")
+    table.add_column("Due Date", style="green")
+
+    for item in assignments:
+        due_str = item.due_date.strftime("%b %d, %Y %I:%M %p")
+        table.add_row(item.course_name, item.title, due_str)
+
+    console.print(table)
 
 
 @app.command()
