@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
+
 import httpx
 from ics import Calendar
 
@@ -31,7 +32,8 @@ class CanvasICalParser:
         target_url = url or self.ical_url
         if not target_url:
             raise ValueError(
-                "Canvas iCal URL is not provided. Set CANVAS_ICAL_URL in your .env file."
+                "Canvas iCal URL is not provided. " \
+                "Set CANVAS_ICAL_URL in your .env file."
             )
 
         # Convert webcal:// scheme to https:// if present
@@ -75,7 +77,8 @@ class CanvasICalParser:
     def get_upcoming_assignments(
         self, days_ahead: int = 14, url: Optional[str] = None
     ) -> list[CanvasItem]:
-        """Fetch and return assignments due within the specified window (default 14 days)."""
+        """Fetch and return assignments due within the specified window """ \
+        """(default 14 days)."""
         raw_feed = self.fetch_feed(url=url)
         all_items = self.parse_assignments(raw_feed)
 
