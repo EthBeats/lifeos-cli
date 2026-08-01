@@ -1,10 +1,10 @@
 """Obsidian Vault integration for markdown notes and frontmatter metadata."""
 
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
-import re
 
 
 @dataclass
@@ -23,12 +23,14 @@ class ObsidianVaultManager:
     def __init__(self, vault_path: Optional[str | Path] = None):
         if not vault_path:
             raise ValueError(
-                "Obsidian Vault path is missing. Set OBSIDIAN_VAULT_PATH in your .env file."
+                "Obsidian Vault path is missing. " \
+                "Set OBSIDIAN_VAULT_PATH in your .env file."
             )
         self.vault_path = Path(vault_path).expanduser().resolve()
 
         if not self.vault_path.exists():
-            raise FileNotFoundError(f"Obsidian Vault path does not exist: {self.vault_path}")
+            raise FileNotFoundError(f"Obsidian Vault path does not exist: " \
+                                    f"{self.vault_path}")
 
     # -------------------------------------------------------------------------
     # Helper Utilities
@@ -109,7 +111,7 @@ class ObsidianVaultManager:
             header = f"# Daily Log - {target_date.strftime('%A, %B %d, %Y')}\n\n"
             note_path.write_text(initial_frontmatter + header, encoding="utf-8")
 
-        existing_content = note_path.read_text(encoding="utf-8")
+        # existing_content = note_path.read_text(encoding="utf-8")
 
         with open(note_path, "a", encoding="utf-8") as f:
             if section_heading:
