@@ -16,6 +16,35 @@ app = typer.Typer(
 console = Console()
 
 @app.command()
+def log_daily(
+    entry: str = typer.Argument(..., help="Text entry to append to today's daily note"),
+    heading: Optional[str] = typer.Option(
+        "Agent Sync Log", "--heading", "-h", help="Optional Markdown H2 section heading"
+    ),
+):
+    """Append a quick log or note entry to today's Obsidian Daily Note."""
+    from lifeos.integrations.obsidian import ObsidianVaultManager
+
+    if not settings.obsidian_vault_path:
+        console.print(
+            "[bold red]Error:[/bold red] No Obsidian Vault path set.\n"
+            "Please configure `OBSIDIAN_VAULT_PATH=/path/to/vault` in your `.env` file."
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        obsidian = ObsidianVaultManager(vault_path=settings.obsidian_vault_path)
+        note_path = obsidian.append_to_daily_note(
+            content=entry, section_heading=heading
+        )
+        console.print(
+            f"[bold green]✓ Updated Daily Note:[/bold green] [cyan]{note_path}[/cyan]"
+        )
+    except Exception as e:
+        console.print(f"[bold red]Failed to write to Obsidian Vault:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+@app.command()
 def check_canvas(
     days: int = typer.Option(14, "--days", "-d", help="Lookahead window in days"),
     url: Optional[str] = typer.Option(

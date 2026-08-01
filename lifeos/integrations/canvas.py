@@ -77,8 +77,10 @@ class CanvasICalParser:
     def get_upcoming_assignments(
         self, days_ahead: int = 14, url: Optional[str] = None
     ) -> list[CanvasItem]:
-        """Fetch and return assignments due within the specified window """ \
-        """(default 14 days)."""
+        """
+        Fetch and return assignments due within the specified window 
+        (default 14 days).
+        """
         raw_feed = self.fetch_feed(url=url)
         all_items = self.parse_assignments(raw_feed)
 
