@@ -31,6 +31,7 @@ class ReminderItem:
     due_date: Optional[datetime]
     is_completed: bool
     calendar_name: str
+    has_time: bool = True
 
 
 @dataclass
@@ -62,8 +63,9 @@ class EventKitBridge:
         """Convert macOS NSDate to standard Python timezone-aware datetime."""
         if ns_date is None:
             return None
-        timestamp = ns_date.timeIntervalSince1970()
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        return datetime.fromtimestamp(
+            ns_date.timeIntervalSince1970()
+        ).astimezone()
 
     @staticmethod
     def _datetime_to_nsdate(dt: datetime) -> Foundation.NSDate:
@@ -71,13 +73,13 @@ class EventKitBridge:
         return Foundation.NSDate.dateWithTimeIntervalSince1970_(dt.timestamp())
 
     @staticmethod
-    def _parse_due_date_components(comp) -> Optional[datetime]:
+    def _parse_due_date_components(comp) -> tuple[Optional[datetime], bool]:
         """
-        Safely convert NSDateComponents to Python datetime.
-        Prevents OverflowError caused by NSDateComponentUndefined (9223372036854775807).
+        Safely convert NSDateComponents to Python datetime and a has_time boolean.
+        If no time component exists, sets time to 23:59:59 (End of Day).
         """
         if not comp:
-            return None
+            return None, False
 
         undefined = Foundation.NSDateComponentUndefined
 
@@ -85,23 +87,28 @@ class EventKitBridge:
         month = comp.month()
         day = comp.day()
 
-        # If year, month, or day are undefined, we cannot build a valid datetime
         if year == undefined or month == undefined or day == undefined:
-            return None
+            return None, False
 
-        # Handle time components safely
-        hour = comp.hour()
-        minute = comp.minute()
-        second = comp.second()
+        raw_hour = comp.hour()
+        raw_minute = comp.minute()
 
-        hour = 0 if hour == undefined else hour
-        minute = 0 if minute == undefined else minute
-        second = 0 if second == undefined else second
+        # Check if user explicitly set a time
+        has_time = raw_hour != undefined and raw_minute != undefined
+
+        if has_time:
+            hour = raw_hour
+            minute = raw_minute
+            second = comp.second()
+            second = 0 if second == undefined else second
+        else:
+            # Default to End of Day (23:59:59) for accurate urgency comparisons
+            hour, minute, second = 23, 59, 59
 
         try:
-            return datetime(year, month, day, hour, minute, second)
+            return datetime(year, month, day, hour, minute, second), has_time
         except (ValueError, OverflowError):
-            return None
+            return None, False
 
     @staticmethod
     def _datetime_to_components(dt: datetime) -> Foundation.NSDateComponents:
@@ -176,7 +183,7 @@ class EventKitBridge:
 
         results = []
         for r in raw_reminders:
-            due_dt = self._parse_due_date_components(r.dueDateComponents())
+            due_dt, has_time = self._parse_due_date_components(r.dueDateComponents())
 
             results.append(
                 ReminderItem(
@@ -186,6 +193,7 @@ class EventKitBridge:
                     due_date=due_dt,
                     is_completed=bool(r.isCompleted()),
                     calendar_name=str(r.calendar().title()),
+                    has_time=has_time,
                 )
             )
         return results
